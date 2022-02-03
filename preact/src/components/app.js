@@ -54,36 +54,29 @@ const App = () => {
 	});
 
 	useEffect(async () => {
-		if (currentUser) {
-			const q = query(
-				collection(db, "timeclock"),
-				orderBy("clockedIn", "desc"),
-				limit(1)
-			);
-			const snap = await getDocs(q);
-			snap.forEach((doc) => {
-				setDocId(doc.id);
-				const data = doc.data();
-				if (data.clockedOut) {
-					setClockedIn(false);
-					setLastClockTime(
-						data.clockedOut.toDate().toString().split(" ").slice(0, 5).join(" ")
-					);
-				} else {
-					setClockedIn(true);
-					setLastClockTime(
-						data.clockedIn.toDate().toString().split(" ").slice(0, 5).join(" ")
-					);
-					setNotes(data.notes);
-				}
-			});
-		} else {
-			setClockedIn(false);
-			setLastClockTime(null);
-			setNotes("");
-			setDocId(null);
-		}
-	}, [clockedIn, currentUser]);
+		const q = query(
+			collection(db, "timeclock"),
+			orderBy("clockedIn", "desc"),
+			limit(1)
+		);
+		const snap = await getDocs(q);
+		snap.forEach((doc) => {
+			setDocId(doc.id);
+			const data = doc.data();
+			if (data.clockedOut) {
+				setClockedIn(false);
+				setLastClockTime(
+					data.clockedOut.toDate().toString().split(" ").slice(0, 5).join(" ")
+				);
+			} else {
+				setClockedIn(true);
+				setLastClockTime(
+					data.clockedIn.toDate().toString().split(" ").slice(0, 5).join(" ")
+				);
+				setNotes(data.notes);
+			}
+		});
+	}, [clockedIn]);
 
 	const signIn = () => {
 		if (!currentUser) signInWithPopup(auth, authProvider);
