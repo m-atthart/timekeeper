@@ -1,6 +1,22 @@
+.dateRange {
+	margin: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 10px;
+}
+
+.dateRange .dateSelect {
+	padding: 10px 5px;
+	font-size: 16px;
+}
+
+.dateRange h3 {
+	margin: 0;
+}
+
 .schedule {
-	width: 100%;
-	padding: 20px;
+	margin: 20px;
 	display: flex;
 	flex-direction: column;
 	gap: 0;
@@ -8,17 +24,22 @@
 	justify-content: flex-start;
 }
 
-.clock {
+.schedule .clock:first-child {
+	border: 2px solid #555;
+	font-weight: 600;
+}
+
+.schedule .clock {
 	width: 100%;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	border: 1px solid #555;
-	padding: 10px;
+	padding: 5px;
 	margin: 5px;
 }
 
-.clock p {
+.schedule .clock p {
 	width: 25%;
 	text-align: center;
 }

@@ -47,3 +47,7 @@
 .header nav a.active {
 	background: rgba(0, 0, 0, 0.4);
 }
+
+.headerSpacing {
+	height: 66px;
+}

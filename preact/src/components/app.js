@@ -107,14 +107,16 @@ const App = () => {
 	return (
 		<div id="app">
 			<Header currentUser={currentUser} signIn={signIn} clockedIn={clockedIn} />
-			<Home
-				path="/"
-				clockedIn={clockedIn}
-				clockInOut={clockInOut}
-				lastClockTime={lastClockTime}
-				notes={notes}
-				setNotes={setNotes}
-			/>
+			{currentUser?.email === "mattevanhart@gmail.com" && (
+				<Home
+					path="/"
+					clockedIn={clockedIn}
+					clockInOut={clockInOut}
+					lastClockTime={lastClockTime}
+					notes={notes}
+					setNotes={setNotes}
+				/>
+			)}
 			<Schedule
 				firebaseApp={firebaseApp}
 				db={db}

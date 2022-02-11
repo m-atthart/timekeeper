@@ -22,8 +22,10 @@ const Schedule = ({ firebaseApp, db, lastClockTime }) => {
 	const [payPeriods, setPayPeriods] = useState([]);
 	const [sched, setSched] = useState([]);
 
-	const formatDate = (date) => {
-		return date.toJSON().split("T")[0].split("-").join("/");
+	const formatDate = (date, option = false) => {
+		return option
+			? date.toString().split(" ").slice(0, 4).join(" ")
+			: date.toString().split(" ").slice(1, 4).join(" ");
 		/*
 		const parts = new Intl.DateTimeFormat("CA", {
 			timeZone: "Etc/UTC",
@@ -96,18 +98,34 @@ const Schedule = ({ firebaseApp, db, lastClockTime }) => {
 
 	return (
 		<>
-			<select onChange={(e) => setPayPeriod(e.target.value.split(","))}>
-				{payPeriods.map((period) => (
-					<option value={period} selected={period === payPeriod}>{`${formatDate(
-						new Date(period[0])
-					)}-${formatDate(new Date(period[1]))}`}</option>
-				))}
-			</select>
-			<h3>Total: {sched.reduce((acc, curr) => acc + curr.hours, 0)}</h3>
+			<div class={style.dateRange}>
+				<h3>Date Range:</h3>
+				<select
+					class={style.dateSelect}
+					onChange={(e) => setPayPeriod(e.target.value.split(","))}
+				>
+					{payPeriods.map((period) => (
+						<option
+							value={period}
+							selected={period === payPeriod}
+						>{`${formatDate(new Date(period[0]))} - ${formatDate(
+							new Date(period[1])
+						)}`}</option>
+					))}
+				</select>
+			</div>
 			<div class={style.schedule}>
+				<div class={style.clock}>
+					<p>Date</p>
+					<p>Time</p>
+					<p>
+						Hours (Total: {sched.reduce((acc, curr) => acc + curr.hours, 0)})
+					</p>
+					<p>Notes</p>
+				</div>
 				{sched.map((clock) => (
 					<div class={style.clock}>
-						<p>{formatDate(clock.clockedIn.toDate())}</p>
+						<p>{formatDate(clock.clockedIn.toDate(), true)}</p>
 						<p>{`${formatTime(clock.clockedIn.toDate())}-${formatTime(
 							clock.clockedOut?.toDate()
 						)}`}</p>
