@@ -37,13 +37,15 @@ const Schedule = ({ firebaseApp, db, lastClockTime }) => {
 		return `${year}-${month}-${day}`;
 		*/
 	};
-	const formatTime = (date) => {
-		return date
-			.toLocaleString("CA", { timeZone: "America/New_York" })
-			.split(", ")[1]
-			.split(":")
-			.slice(0, 2)
-			.join(":");
+	const formatTime = (time) => {
+		return time
+			? time
+					.toLocaleString("CA", { timeZone: "America/New_York" })
+					.split(", ")[1]
+					.split(":")
+					.slice(0, 2)
+					.join(":")
+			: "";
 	};
 
 	const updateSchedule = async (startDate, endDate) => {
@@ -58,9 +60,9 @@ const Schedule = ({ firebaseApp, db, lastClockTime }) => {
 		setSched(
 			snap.docs.map((doc) => {
 				const data = doc.data();
-				data.hours = parseFloat(
-					((data.clockedOut - data.clockedIn) / 3600).toFixed(2)
-				);
+				data.hours = data.clockedOut
+					? parseFloat(((data.clockedOut - data.clockedIn) / 3600).toFixed(2))
+					: 0;
 				return data;
 			})
 		);
@@ -81,7 +83,7 @@ const Schedule = ({ firebaseApp, db, lastClockTime }) => {
 		getOptions();
 	}, []);
 	useEffect(() => {
-		setPayPeriod(payPeriods[1]);
+		setPayPeriod(payPeriods[0]);
 	}, [payPeriods]);
 	useEffect(() => {
 		if (payPeriod)
@@ -107,7 +109,7 @@ const Schedule = ({ firebaseApp, db, lastClockTime }) => {
 					<div class={style.clock}>
 						<p>{formatDate(clock.clockedIn.toDate())}</p>
 						<p>{`${formatTime(clock.clockedIn.toDate())}-${formatTime(
-							clock.clockedOut.toDate()
+							clock.clockedOut?.toDate()
 						)}`}</p>
 						<p>{clock.hours}</p>
 						<p>{clock.notes}</p>
