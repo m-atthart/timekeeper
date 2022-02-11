@@ -1,6 +1,5 @@
 import { h } from "preact";
 import { useState, useEffect } from "preact/hooks";
-import { Router } from "preact-router";
 import { initializeApp } from "firebase/app";
 import {
 	getAuth,
@@ -37,6 +36,7 @@ const db = getFirestore(firebaseApp);
 
 import Header from "./header";
 import Home from "./home";
+import Schedule from "./schedule";
 
 const App = () => {
 	const [currentUser, setCurrentUser] = useState(null);
@@ -106,17 +106,20 @@ const App = () => {
 
 	return (
 		<div id="app">
-			<Header currentUser={currentUser} signIn={signIn} />
-			<Router>
-				<Home
-					path="/"
-					clockedIn={clockedIn}
-					clockInOut={clockInOut}
-					lastClockTime={lastClockTime}
-					notes={notes}
-					setNotes={setNotes}
-				/>
-			</Router>
+			<Header currentUser={currentUser} signIn={signIn} clockedIn={clockedIn} />
+			<Home
+				path="/"
+				clockedIn={clockedIn}
+				clockInOut={clockInOut}
+				lastClockTime={lastClockTime}
+				notes={notes}
+				setNotes={setNotes}
+			/>
+			<Schedule
+				firebaseApp={firebaseApp}
+				db={db}
+				lastClockTime={lastClockTime}
+			></Schedule>
 		</div>
 	);
 };
