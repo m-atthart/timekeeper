@@ -119,7 +119,8 @@ const Schedule = ({ firebaseApp, db, lastClockTime }) => {
 					<p>Date</p>
 					<p>Time</p>
 					<p>
-						Hours (Total: {sched.reduce((acc, curr) => acc + curr.hours, 0)})
+						Hours (Total:{" "}
+						{sched.reduce((acc, curr) => acc + curr.hours, 0).toFixed(2)})
 					</p>
 					<p>Notes</p>
 				</div>
