@@ -22,21 +22,26 @@ const Schedule = ({ db }) => {
 		e.preventDefault();
 
 		const clocks = sched.map((clock) => {
-			clock.date = formatDate(clock.clockedIn.toDate(), true);
-			clock.time = `${formatTime(clock.clockedIn.toDate())}-${formatTime(
-				clock.clockedOut?.toDate()
-			)}`;
+			clock.date = clock.clockedIn.toDate().toJSON().split("T")[0];
+			clock.startTime = formatTime(clock.clockedIn.toDate());
+			clock.endTime = formatTime(clock.clockedOut?.toDate());
 			return clock;
+		});
+
+		clocks.push({
+			hours: parseFloat(
+				clocks.reduce((acc, curr) => acc + curr.hours, 0).toFixed(2)
+			),
 		});
 
 		const wb = XLSX.utils.book_new();
 		const ws = XLSX.utils.json_to_sheet(clocks, {
-			header: ["date", "time", "hours", "notes"],
+			header: ["date", "startTime", "endTime", "hours", "notes"],
 		});
-		["Date", "Time", "Hours", "Notes"].forEach(
+		["Date", "Clocked In", "Clocked Out", "Hours", "Notes", "", ""].forEach(
 			(header, idx) => (ws[`${String.fromCharCode(65 + idx)}1`].v = header)
 		);
-		XLSX.utils.book_append_sheet(wb, ws, "worksheet 1");
+		XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
 
 		XLSX.writeFile(
 			wb,
@@ -46,6 +51,7 @@ const Schedule = ({ db }) => {
 		);
 	};
 
+	// contains bug: shows next date if clockedIn after 7/8 cause date is UTC
 	const formatDate = (date, option = false) => {
 		return option
 			? date.toString().split(" ").slice(0, 4).join(" ")
@@ -63,6 +69,7 @@ const Schedule = ({ db }) => {
 		return `${year}-${month}-${day}`;
 		*/
 	};
+
 	const formatTime = (time) => {
 		return time
 			? time

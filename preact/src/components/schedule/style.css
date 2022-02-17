@@ -3,6 +3,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	user-select: none;
 }
 
 .generateBtn {
@@ -11,6 +12,7 @@
 	border: none;
 	color: white;
 	background-color: #673ab7;
+	cursor: pointer;
 }
 
 .dateRange {
@@ -20,6 +22,10 @@
 	gap: 10px;
 }
 
+.dateRange h3 {
+	margin: 0;
+}
+
 .dateRange .dateSelect {
 	padding: 10px 5px;
 	font-size: 16px;
@@ -27,10 +33,6 @@
 
 .dateRange .dateSelect:focus {
 	outline: none;
-}
-
-.dateRange h3 {
-	margin: 0;
 }
 
 .schedule {

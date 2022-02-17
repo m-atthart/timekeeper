@@ -8,6 +8,7 @@
 	background: #673ab7;
 	box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	z-index: 50;
+	user-select: none;
 }
 
 .header h1 {
