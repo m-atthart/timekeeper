@@ -1,5 +1,19 @@
-.dateRange {
+.scheduleNav {
 	margin: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.generateBtn {
+	padding: 10px;
+	font-size: 16px;
+	border: none;
+	color: white;
+	background-color: #673ab7;
+}
+
+.dateRange {
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
@@ -9,6 +23,10 @@
 .dateRange .dateSelect {
 	padding: 10px 5px;
 	font-size: 16px;
+}
+
+.dateRange .dateSelect:focus {
+	outline: none;
 }
 
 .dateRange h3 {

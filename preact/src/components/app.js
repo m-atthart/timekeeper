@@ -117,11 +117,7 @@ const App = () => {
 					setNotes={setNotes}
 				/>
 			)}
-			<Schedule
-				firebaseApp={firebaseApp}
-				db={db}
-				lastClockTime={lastClockTime}
-			></Schedule>
+			<Schedule db={db}></Schedule>
 		</div>
 	);
 };

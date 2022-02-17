@@ -2,25 +2,49 @@ import { h } from "preact";
 import { useState, useEffect } from "preact/hooks";
 import style from "./style.css";
 import {
-	getFirestore,
 	collection,
-	doc,
 	query,
 	where,
 	orderBy,
-	limit,
 	getDocs,
-	addDoc,
-	setDoc,
 	Timestamp,
 } from "firebase/firestore/lite";
+import * as XLSX from "xlsx";
 
-const Schedule = ({ firebaseApp, db, lastClockTime }) => {
+const Schedule = ({ db }) => {
 	const initialPayDate = new Date("2022-01-08");
 	const twoWksInMs = 12096e5;
 	const [payPeriod, setPayPeriod] = useState(null);
 	const [payPeriods, setPayPeriods] = useState([]);
 	const [sched, setSched] = useState([]);
+
+	const generateTimesheet = (e) => {
+		e.preventDefault();
+
+		const clocks = sched.map((clock) => {
+			clock.date = formatDate(clock.clockedIn.toDate(), true);
+			clock.time = `${formatTime(clock.clockedIn.toDate())}-${formatTime(
+				clock.clockedOut?.toDate()
+			)}`;
+			return clock;
+		});
+
+		const wb = XLSX.utils.book_new();
+		const ws = XLSX.utils.json_to_sheet(clocks, {
+			header: ["date", "time", "hours", "notes"],
+		});
+		["Date", "Time", "Hours", "Notes"].forEach(
+			(header, idx) => (ws[`${String.fromCharCode(65 + idx)}1`].v = header)
+		);
+		XLSX.utils.book_append_sheet(wb, ws, "worksheet 1");
+
+		XLSX.writeFile(
+			wb,
+			`Matt's Timesheet - ${payPeriod[0].split("T")[0]} - ${
+				payPeriod[1].split("T")[0]
+			}.xlsx`
+		);
+	};
 
 	const formatDate = (date, option = false) => {
 		return option
@@ -98,21 +122,28 @@ const Schedule = ({ firebaseApp, db, lastClockTime }) => {
 
 	return (
 		<>
-			<div class={style.dateRange}>
-				<h3>Date Range:</h3>
-				<select
-					class={style.dateSelect}
-					onChange={(e) => setPayPeriod(e.target.value.split(","))}
-				>
-					{payPeriods.map((period) => (
-						<option
-							value={period}
-							selected={period === payPeriod}
-						>{`${formatDate(new Date(period[0]))} - ${formatDate(
-							new Date(period[1])
-						)}`}</option>
-					))}
-				</select>
+			<div class={style.scheduleNav}>
+				<div class={style.dateRange}>
+					<h3>Date Range:</h3>
+					<select
+						class={style.dateSelect}
+						onChange={(e) => setPayPeriod(e.target.value.split(","))}
+					>
+						{payPeriods.map((period) => (
+							<option
+								value={period}
+								selected={period === payPeriod}
+							>{`${formatDate(new Date(period[0]))} - ${formatDate(
+								new Date(period[1])
+							)}`}</option>
+						))}
+					</select>
+				</div>
+				<div>
+					<button class={style.generateBtn} onClick={generateTimesheet}>
+						Generate Timesheet
+					</button>
+				</div>
 			</div>
 			<div class={style.schedule}>
 				<div class={style.clock}>
