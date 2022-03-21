@@ -15,23 +15,29 @@
 	cursor: pointer;
 }
 
-.dateRange {
+.scheduleOptions {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+}
+
+.scheduleOption {
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
 	gap: 10px;
 }
 
-.dateRange h3 {
+.scheduleOption h3 {
 	margin: 0;
 }
 
-.dateRange .dateSelect {
+.scheduleOption .scheduleOptionSelect {
 	padding: 10px 5px;
 	font-size: 16px;
 }
 
-.dateRange .dateSelect:focus {
+.scheduleOption .scheduleOptionSelect:focus {
 	outline: none;
 }
 

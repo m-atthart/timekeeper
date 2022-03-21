@@ -42,6 +42,8 @@ const App = () => {
 	const [currentUser, setCurrentUser] = useState(null);
 	const [clockedIn, setClockedIn] = useState(false);
 	const [lastClockTime, setLastClockTime] = useState(null);
+	const [client, setClient] = useState(null); //empty obj is truthy
+	const [clients, setClients] = useState([]);
 	const [notes, setNotes] = useState("");
 	const [docId, setDocId] = useState(null);
 
@@ -54,8 +56,22 @@ const App = () => {
 	});
 
 	useEffect(async () => {
+		if (currentUser) {
+			const q = query(collection(db, "clients"));
+			const snap = await getDocs(q);
+			setClients(snap.docs.map((doc) => doc.data()));
+			//in firestore rules, only allow them to see clients that have uid in client.viewers arr
+		}
+	}, [currentUser]);
+
+	useEffect(() => {
+		setClient(clients[0]);
+	}, [clients]);
+
+	useEffect(async () => {
+		if (!client) return;
 		const q = query(
-			collection(db, "timeclock"),
+			collection(db, `clients/${client.code}/timeclock`),
 			orderBy("clockedIn", "desc"),
 			limit(1)
 		);
@@ -68,6 +84,7 @@ const App = () => {
 				setLastClockTime(
 					data.clockedOut.toDate().toString().split(" ").slice(0, 5).join(" ")
 				);
+				setNotes("");
 			} else {
 				setClockedIn(true);
 				setLastClockTime(
@@ -76,7 +93,7 @@ const App = () => {
 				setNotes(data.notes);
 			}
 		});
-	}, [clockedIn]);
+	}, [clockedIn, client]);
 
 	const signIn = () => {
 		if (!currentUser) signInWithPopup(auth, authProvider);
@@ -85,7 +102,7 @@ const App = () => {
 	const clockInOut = async () => {
 		if (clockedIn) {
 			await setDoc(
-				doc(db, "timeclock", docId),
+				doc(db, `clients/${client.code}/timeclock`, docId),
 				{
 					clockedOut: Timestamp.now(),
 					notes,
@@ -93,11 +110,14 @@ const App = () => {
 				{ merge: true }
 			);
 		} else {
-			const docRef = await addDoc(collection(db, "timeclock"), {
-				clockedIn: Timestamp.now(),
-				clockedOut: null,
-				notes,
-			});
+			const docRef = await addDoc(
+				collection(db, `clients/${client.code}/timeclock`),
+				{
+					clockedIn: Timestamp.now(),
+					clockedOut: null,
+					notes,
+				}
+			);
 			setDocId(docRef.id);
 		}
 		setNotes("");
@@ -117,7 +137,12 @@ const App = () => {
 					setNotes={setNotes}
 				/>
 			)}
-			<Schedule db={db}></Schedule>
+			<Schedule
+				db={db}
+				client={client}
+				setClient={setClient}
+				clients={clients}
+			></Schedule>
 		</div>
 	);
 };

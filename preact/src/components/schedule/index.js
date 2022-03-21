@@ -11,10 +11,10 @@ import {
 } from "firebase/firestore/lite";
 import * as XLSX from "xlsx";
 
-const Schedule = ({ db }) => {
+const Schedule = ({ db, client, setClient, clients }) => {
 	const initialPayDate = new Date("2022-01-08");
 	const twoWksInMs = 12096e5;
-	const [payPeriod, setPayPeriod] = useState(null);
+	const [payPeriod, setPayPeriod] = useState(null); //empty arr is truthy
 	const [payPeriods, setPayPeriods] = useState([]);
 	const [sched, setSched] = useState([]);
 
@@ -81,9 +81,9 @@ const Schedule = ({ db }) => {
 			: "";
 	};
 
-	const updateSchedule = async (startDate, endDate) => {
+	const updateSchedule = async (client, startDate, endDate) => {
 		const q = query(
-			collection(db, "timeclock"),
+			collection(db, `clients/${client.code}/timeclock`),
 			where("clockedIn", ">=", Timestamp.fromDate(startDate)),
 			where("clockedIn", "<=", Timestamp.fromDate(endDate)),
 			orderBy("clockedIn", "asc")
@@ -110,41 +110,59 @@ const Schedule = ({ db }) => {
 			]);
 			initialPayDate.setDate(initialPayDate.getDate() + 14);
 		}
-		setPayPeriods(options);
+		return options;
 	};
 	useEffect(() => {
-		getOptions();
+		const options = getOptions();
+		setPayPeriods(options);
+		setPayPeriod(options[0]);
 	}, []);
 	useEffect(() => {
-		setPayPeriod(payPeriods[0]);
-	}, [payPeriods]);
-	useEffect(() => {
-		if (payPeriod)
-			updateSchedule(new Date(payPeriod[0]), new Date(payPeriod[1]));
-	}, [payPeriod]);
+		if (payPeriod && client)
+			updateSchedule(client, new Date(payPeriod[0]), new Date(payPeriod[1]));
+	}, [payPeriod, client]);
+	/*
 	useEffect(() => {
 		console.log(sched);
 		console.log(sched.reduce((acc, curr) => acc + curr.hours, 0));
 	}, [sched]);
+	*/
 
 	return (
 		<>
 			<div class={style.scheduleNav}>
-				<div class={style.dateRange}>
-					<h3>Date Range:</h3>
-					<select
-						class={style.dateSelect}
-						onChange={(e) => setPayPeriod(e.target.value.split(","))}
-					>
-						{payPeriods.map((period) => (
-							<option
-								value={period}
-								selected={period === payPeriod}
-							>{`${formatDate(new Date(period[0]))} - ${formatDate(
-								new Date(period[1])
-							)}`}</option>
-						))}
-					</select>
+				<div class={style.scheduleOptions}>
+					<div class={style.scheduleOption}>
+						<h3>Client:</h3>
+						<select
+							class={style.scheduleOptionSelect}
+							onChange={(e) =>
+								setClient(
+									clients.find((client) => client.code === e.target.value)
+								)
+							}
+						>
+							{clients.map((client) => (
+								<option value={client.code}>{client.name}</option>
+							))}
+						</select>
+					</div>
+					<div class={style.scheduleOption}>
+						<h3>Date Range:</h3>
+						<select
+							class={style.scheduleOptionSelect}
+							onChange={(e) => setPayPeriod(e.target.value.split(","))}
+						>
+							{payPeriods.map((period) => (
+								<option
+									value={period}
+									selected={period === payPeriod}
+								>{`${formatDate(new Date(period[0]))} - ${formatDate(
+									new Date(period[1])
+								)}`}</option>
+							))}
+						</select>
+					</div>
 				</div>
 				<div>
 					<button class={style.generateBtn} onClick={generateTimesheet}>
