@@ -1,6 +1,6 @@
 {
-	"name": "timeclock",
-	"short_name": "timeclock",
+	"name": "Is Matt Working?",
+	"short_name": "IMW?",
 	"start_url": "/",
 	"display": "standalone",
 	"orientation": "portrait",

@@ -121,12 +121,6 @@ const Schedule = ({ db, client, setClient, clients }) => {
 		if (payPeriod && client)
 			updateSchedule(client, new Date(payPeriod[0]), new Date(payPeriod[1]));
 	}, [payPeriod, client]);
-	/*
-	useEffect(() => {
-		console.log(sched);
-		console.log(sched.reduce((acc, curr) => acc + curr.hours, 0));
-	}, [sched]);
-	*/
 
 	return (
 		<>

@@ -12,6 +12,7 @@ import {
 	collection,
 	doc,
 	query,
+	where,
 	orderBy,
 	limit,
 	getDocs,
@@ -57,7 +58,10 @@ const App = () => {
 
 	useEffect(async () => {
 		if (currentUser) {
-			const q = query(collection(db, "clients"));
+			const q = query(
+				collection(db, "clients"),
+				where("viewers", "array-contains", currentUser.uid)
+			);
 			const snap = await getDocs(q);
 			setClients(snap.docs.map((doc) => doc.data()));
 			//in firestore rules, only allow them to see clients that have uid in client.viewers arr
@@ -127,7 +131,9 @@ const App = () => {
 	return (
 		<div id="app">
 			<Header currentUser={currentUser} signIn={signIn} clockedIn={clockedIn} />
-			{currentUser?.email === "mattevanhart@gmail.com" && (
+			{["mattevanhart@gmail.com", "stephen.frangulescu@gmail.com"].includes(
+				currentUser?.email
+			) && (
 				<Home
 					path="/"
 					clockedIn={clockedIn}
