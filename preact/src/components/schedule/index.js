@@ -22,9 +22,9 @@ const Schedule = ({ db, client, setClient, clients }) => {
 		e.preventDefault();
 
 		const clocks = sched.map((clock) => {
-			clock.date = clock.clockedIn.toDate().toJSON().split("T")[0];
-			clock.startTime = formatTime(clock.clockedIn.toDate());
-			clock.endTime = formatTime(clock.clockedOut?.toDate());
+			clock.date = formatDateTime(clock.clockedIn.toDate()).numDate;
+			clock.startTime = formatDateTime(clock.clockedIn.toDate()).time;
+			clock.endTime = formatDateTime(clock.clockedOut?.toDate()).time;
 			return clock;
 		});
 
@@ -51,41 +51,57 @@ const Schedule = ({ db, client, setClient, clients }) => {
 		);
 	};
 
-	// contains bug: shows next date if clockedIn after 7/8 cause date is UTC
-	const formatDate = (date, option = false) => {
-		return option
-			? date.toString().split(" ").slice(0, 4).join(" ")
-			: date.toString().split(" ").slice(1, 4).join(" ");
-		/*
-		const parts = new Intl.DateTimeFormat("CA", {
+	const formatDateTime = (date) => {
+		const payPeriodDateOptions = {
 			timeZone: "Etc/UTC",
+			month: "short",
+			day: "numeric",
+			year: "numeric",
+		};
+		const textDateOptions = {
+			timeZone: "America/New_York",
+			weekday: "short",
+			month: "short",
+			day: "numeric",
+			year: "numeric",
+		};
+		const numDateOptions = {
+			timeZone: "America/New_York",
 			year: "numeric",
 			month: "2-digit",
 			day: "2-digit",
-		}).formatToParts(date);
-		const year = parts.find((part) => part.type === "year").value;
-		const month = parts.find((part) => part.type === "month").value;
-		const day = parts.find((part) => part.type === "day").value;
-		return `${year}-${month}-${day}`;
-		*/
-	};
+		};
+		const timeOptions = {
+			timeZone: "America/New_York",
+			hour: "2-digit",
+			minute: "2-digit",
+			hourCycle: "h23",
+		};
 
-	const formatTime = (time) => {
-		return time
-			? time
-					.toLocaleString("CA", { timeZone: "America/New_York" })
-					.split(", ")[1]
-					.split(":")
-					.slice(0, 2)
-					.join(":")
-			: "";
+		return {
+			payPeriodDate: new Intl.DateTimeFormat(
+				"en-CA",
+				payPeriodDateOptions
+			).format(date),
+			textDate: new Intl.DateTimeFormat("en-CA", textDateOptions)
+				.format(date)
+				.split("")
+				.filter((char) => char !== ",")
+				.join(""),
+			numDate: new Intl.DateTimeFormat("en-CA", numDateOptions).format(date),
+			time: new Intl.DateTimeFormat("en-CA", timeOptions).format(date),
+		};
 	};
 
 	const updateSchedule = async (client, startDate, endDate) => {
+		const tzOffset = new Date().getTimezoneOffset() * 60000;
+		const UTCStartDate = new Date(startDate - -tzOffset);
+		const UTCEndDate = new Date(endDate - -(864e5 + tzOffset));
+
 		const q = query(
 			collection(db, `clients/${client.code}/timeclock`),
-			where("clockedIn", ">=", Timestamp.fromDate(startDate)),
-			where("clockedIn", "<=", Timestamp.fromDate(endDate)),
+			where("clockedIn", ">=", Timestamp.fromDate(UTCStartDate)),
+			where("clockedIn", "<", Timestamp.fromDate(UTCEndDate)),
 			orderBy("clockedIn", "asc")
 		);
 		const snap = await getDocs(q);
@@ -95,7 +111,7 @@ const Schedule = ({ db, client, setClient, clients }) => {
 				const data = doc.data();
 				data.hours = data.clockedOut
 					? parseFloat(((data.clockedOut - data.clockedIn) / 3600).toFixed(2))
-					: 0;
+					: parseFloat(((new Date() - data.clockedIn) / 3600).toFixed(2));
 				return data;
 			})
 		);
@@ -103,12 +119,13 @@ const Schedule = ({ db, client, setClient, clients }) => {
 
 	const getOptions = () => {
 		const options = [];
-		while (initialPayDate < new Date()) {
+		let startPayDate = new Date(initialPayDate);
+		while (startPayDate < new Date()) {
 			options.unshift([
-				new Date(initialPayDate).toJSON(),
-				new Date(new Date(initialPayDate.getTime() + twoWksInMs) - 1).toJSON(),
+				startPayDate.toJSON(),
+				new Date(startPayDate - -(twoWksInMs - 864e5)).toJSON(),
 			]);
-			initialPayDate.setDate(initialPayDate.getDate() + 14);
+			startPayDate = new Date(startPayDate - -twoWksInMs);
 		}
 		return options;
 	};
@@ -148,12 +165,11 @@ const Schedule = ({ db, client, setClient, clients }) => {
 							onChange={(e) => setPayPeriod(e.target.value.split(","))}
 						>
 							{payPeriods.map((period) => (
-								<option
-									value={period}
-									selected={period === payPeriod}
-								>{`${formatDate(new Date(period[0]))} - ${formatDate(
-									new Date(period[1])
-								)}`}</option>
+								<option value={period} selected={period === payPeriod}>{`${
+									formatDateTime(new Date(period[0])).payPeriodDate
+								} - ${
+									formatDateTime(new Date(period[1])).payPeriodDate
+								}`}</option>
 							))}
 						</select>
 					</div>
@@ -176,10 +192,10 @@ const Schedule = ({ db, client, setClient, clients }) => {
 				</div>
 				{sched.map((clock) => (
 					<div class={style.clock}>
-						<p>{formatDate(clock.clockedIn.toDate(), true)}</p>
-						<p>{`${formatTime(clock.clockedIn.toDate())}-${formatTime(
-							clock.clockedOut?.toDate()
-						)}`}</p>
+						<p>{formatDateTime(clock.clockedIn.toDate()).textDate}</p>
+						<p>{`${formatDateTime(clock.clockedIn.toDate()).time}-${
+							formatDateTime(clock.clockedOut?.toDate()).time
+						}`}</p>
 						<p>{clock.hours}</p>
 						<p>{clock.notes}</p>
 					</div>
