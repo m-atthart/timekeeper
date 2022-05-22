@@ -64,7 +64,6 @@ const App = () => {
 			);
 			const snap = await getDocs(q);
 			setClients(snap.docs.map((doc) => doc.data()));
-			//in firestore rules, only allow them to see clients that have uid in client.viewers arr
 		}
 	}, [currentUser]);
 

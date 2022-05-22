@@ -119,7 +119,7 @@ const Schedule = ({ db, client, setClient, clients }) => {
 
 	const getOptions = () => {
 		const options = [];
-		let startPayDate = new Date(initialPayDate);
+		let startPayDate = new Date(client?.startDate?.toDate());
 		while (startPayDate < new Date()) {
 			options.unshift([
 				startPayDate.toJSON(),
@@ -133,7 +133,7 @@ const Schedule = ({ db, client, setClient, clients }) => {
 		const options = getOptions();
 		setPayPeriods(options);
 		setPayPeriod(options[0]);
-	}, []);
+	}, [client]);
 	useEffect(() => {
 		if (payPeriod && client)
 			updateSchedule(client, new Date(payPeriod[0]), new Date(payPeriod[1]));
@@ -154,7 +154,7 @@ const Schedule = ({ db, client, setClient, clients }) => {
 							}
 						>
 							{clients.map((client) => (
-								<option value={client.code}>{client.name}</option>
+								<option value={client.code}>{client.displayName}</option>
 							))}
 						</select>
 					</div>

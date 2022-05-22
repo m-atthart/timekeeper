@@ -1,9 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read: if true;
-      allow write: if request.auth.token.email in ["mattevanhart@gmail.com", "stephen.frangulescu@gmail.com"];
+    match /clients/{client} {
+      allow read: if request.auth.uid in resource.data.viewers;
+      allow write: if request.auth.uid in resource.data.editors;
+
+      match /timeclock/{shift} {
+        allow read: if request.auth.uid in getClientViewers(client);
+        allow write: if request.auth.uid in getClientEditors(client);
+      }
+    }
+
+    function getClientViewers(client) {
+      return get(/databases/$(database)/documents/clients/$(client)).data.viewers;
+    }
+    function getClientEditors(client) {
+      return get(/databases/$(database)/documents/clients/$(client)).data.editors;
     }
   }
 }
