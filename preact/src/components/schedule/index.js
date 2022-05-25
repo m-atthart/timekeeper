@@ -9,16 +9,14 @@ import {
 	getDocs,
 	Timestamp,
 } from "firebase/firestore/lite";
-import * as XLSX from "xlsx";
 
 const Schedule = ({ db, client, setClient, clients }) => {
-	const initialPayDate = new Date("2022-01-08");
 	const twoWksInMs = 12096e5;
 	const [payPeriod, setPayPeriod] = useState(null); //empty arr is truthy
 	const [payPeriods, setPayPeriods] = useState([]);
 	const [sched, setSched] = useState([]);
 
-	const generateTimesheet = (e) => {
+	const generateTimesheet = async (e) => {
 		e.preventDefault();
 
 		const clocks = sched.map((clock) => {
@@ -34,6 +32,7 @@ const Schedule = ({ db, client, setClient, clients }) => {
 			),
 		});
 
+		const XLSX = await import("xlsx");
 		const wb = XLSX.utils.book_new();
 		const ws = XLSX.utils.json_to_sheet(clocks, {
 			header: ["date", "startTime", "endTime", "hours", "notes"],
@@ -110,8 +109,10 @@ const Schedule = ({ db, client, setClient, clients }) => {
 			snap.docs.map((doc) => {
 				const data = doc.data();
 				data.hours = data.clockedOut
-					? parseFloat(((data.clockedOut - data.clockedIn) / 3600).toFixed(2))
-					: parseFloat(((new Date() - data.clockedIn) / 3600).toFixed(2));
+					? parseFloat(((data.clockedOut - data.clockedIn) / 36e2).toFixed(2)) //fs timestamp seconds
+					: parseFloat(
+							((new Date() - data.clockedIn.toDate()) / 36e5).toFixed(2) //js date milliseconds
+					  );
 				return data;
 			})
 		);

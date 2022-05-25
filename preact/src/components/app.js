@@ -130,9 +130,7 @@ const App = () => {
 	return (
 		<div id="app">
 			<Header currentUser={currentUser} signIn={signIn} clockedIn={clockedIn} />
-			{["mattevanhart@gmail.com", "stephen.frangulescu@gmail.com"].includes(
-				currentUser?.email
-			) && (
+			{client?.editors?.includes(currentUser?.uid) && (
 				<Home
 					path="/"
 					clockedIn={clockedIn}
