@@ -142,6 +142,7 @@ const App = () => {
 			)}
 			<Schedule
 				db={db}
+				currentUser={currentUser}
 				client={client}
 				setClient={setClient}
 				clients={clients}

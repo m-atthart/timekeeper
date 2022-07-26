@@ -67,3 +67,4 @@ node_modules/
 
 # preact build
 build/
+size-plugin.json

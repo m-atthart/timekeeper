@@ -10,7 +10,7 @@ import {
 	Timestamp,
 } from "firebase/firestore/lite";
 
-const Schedule = ({ db, client, setClient, clients }) => {
+const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 	const twoWksInMs = 12096e5;
 	const [payPeriod, setPayPeriod] = useState(null); //empty arr is truthy
 	const [payPeriods, setPayPeriods] = useState([]);
@@ -44,9 +44,9 @@ const Schedule = ({ db, client, setClient, clients }) => {
 
 		XLSX.writeFile(
 			wb,
-			`Matt's Timesheet - ${payPeriod[0].split("T")[0]} - ${
-				payPeriod[1].split("T")[0]
-			}.xlsx`
+			`${currentUser?.displayName}'s Timesheet - ${
+				payPeriod[0].split("T")[0]
+			} - ${payPeriod[1].split("T")[0]}.xlsx`
 		);
 	};
 
