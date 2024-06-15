@@ -6,11 +6,12 @@ import {
 	query,
 	where,
 	orderBy,
-	getDocs,
+	onSnapshot,
 	Timestamp,
-} from "firebase/firestore/lite";
+} from "firebase/firestore";
 
 const Schedule = ({ db, currentUser, client, setClient, clients }) => {
+	const payPeriodLength = client.payPeriodLength ?? "biweekly";
 	const twoWksInMs = 12096e5;
 	const [payPeriod, setPayPeriod] = useState(null); //empty arr is truthy
 	const [payPeriods, setPayPeriods] = useState([]);
@@ -103,30 +104,41 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 			where("clockedIn", "<", Timestamp.fromDate(UTCEndDate)),
 			orderBy("clockedIn", "asc")
 		);
-		const snap = await getDocs(q);
 
-		setSched(
-			snap.docs.map((doc) => {
-				const data = doc.data();
-				data.hours = data.clockedOut
-					? parseFloat(((data.clockedOut - data.clockedIn) / 36e2).toFixed(2)) //fs timestamp seconds
-					: parseFloat(
-							((new Date() - data.clockedIn.toDate()) / 36e5).toFixed(2) //js date milliseconds
-					  );
-				return data;
-			})
-		);
+		onSnapshot(q, (snap) => {
+			setSched(
+				snap.docs.map((doc) => {
+					const data = doc.data();
+					data.docId = doc.id;
+					data.hours = data.clockedOut
+						? parseFloat(((data.clockedOut - data.clockedIn) / 36e2).toFixed(2)) //fs timestamp seconds
+						: parseFloat(
+								((new Date() - data.clockedIn.toDate()) / 36e5).toFixed(2) //js date milliseconds
+						  );
+					return data;
+				})
+			);
+		});
 	};
 
 	const getOptions = () => {
 		const options = [];
 		let startPayDate = new Date(client?.startDate?.toDate());
 		while (startPayDate < new Date()) {
-			options.unshift([
-				startPayDate.toJSON(),
-				new Date(startPayDate - -(twoWksInMs - 864e5)).toJSON(),
-			]);
-			startPayDate = new Date(startPayDate - -twoWksInMs);
+			if (payPeriodLength === "biweekly") {
+				options.unshift([
+					startPayDate.toJSON(),
+					new Date(startPayDate - -(twoWksInMs - 864e5)).toJSON(),
+				]);
+				startPayDate = new Date(startPayDate - -twoWksInMs);
+			} else if (payPeriodLength === "monthly") {
+				startPayDate.setUTCDate(1);
+				const endPayDate = new Date(startPayDate);
+				endPayDate.setUTCMonth(endPayDate.getUTCMonth() + 1);
+				endPayDate.setUTCDate(endPayDate.getUTCDate() - 1);
+				options.unshift([startPayDate.toJSON(), endPayDate.toJSON()]);
+				startPayDate.setUTCMonth(startPayDate.getUTCMonth() + 1);
+			}
 		}
 		return options;
 	};
