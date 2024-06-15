@@ -15,8 +15,9 @@ import {
 const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 	const payPeriodLength = client.payPeriodLength ?? "biweekly";
 	const twoWksInMs = 12096e5;
-	const [payPeriod, setPayPeriod] = useState(null); //empty arr is truthy
+	const [payPeriodIdx, setPayPeriodIdx] = useState(0);
 	const [payPeriods, setPayPeriods] = useState([]);
+	const payPeriod = payPeriods[payPeriodIdx];
 	const [sched, setSched] = useState([]);
 
 	const generateTimesheet = async (e) => {
@@ -58,9 +59,7 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 			const ws = {};
 
 			XLSX.utils.book_append_sheet(wb, ws, "Invoice");
-			const invoiceNum =
-				payPeriods.length -
-				payPeriods.findIndex((period) => period[0] === payPeriod[0]); //not actually invoice number, but idk
+			const invoiceNum = payPeriods.length - payPeriodIdx; //not actually invoice number, but idk
 			XLSX.writeFile(
 				wb,
 				`${currentUser?.displayName} - Invoice #${invoiceNum
@@ -189,12 +188,12 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 	useEffect(() => {
 		const options = getOptions();
 		setPayPeriods(options);
-		setPayPeriod(options[0]);
+		setPayPeriodIdx(0);
 	}, [client]);
 	useEffect(() => {
 		if (payPeriod && client)
 			updateSchedule(client, new Date(payPeriod[0]), new Date(payPeriod[1]));
-	}, [payPeriod, client]);
+	}, [payPeriodIdx, client]); //make sure this uses the derived payPeriod
 
 	return (
 		<>
@@ -219,12 +218,12 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 						<h3>Date Range:</h3>
 						<select
 							class={style.scheduleOptionSelect}
-							onChange={(e) => setPayPeriod(e.target.value.split(","))}
+							onChange={(e) => setPayPeriodIdx(e.target.value)}
 						>
-							{payPeriods.map((period) => (
+							{payPeriods.map((period, idx) => (
 								<option
-									value={period}
-									selected={period === payPeriod}
+									value={idx}
+									selected={idx === payPeriodIdx}
 								>{`${formatDateTime(
 									new Date(period[0]),
 									"payPeriodDate"
