@@ -7,6 +7,8 @@ import {
 	where,
 	orderBy,
 	onSnapshot,
+	doc,
+	setDoc,
 	Timestamp,
 } from "firebase/firestore";
 
@@ -91,6 +93,10 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 			numDate: new Intl.DateTimeFormat("en-CA", numDateOptions).format(date),
 			time: new Intl.DateTimeFormat("en-CA", timeOptions).format(date),
 		};
+	};
+
+	const updatePayPeriod = (docId, docData) => {
+		return setDoc(doc(db, `clients/${client.code}/timeclock`, docId), docData);
 	};
 
 	const updateSchedule = async (client, startDate, endDate) => {
