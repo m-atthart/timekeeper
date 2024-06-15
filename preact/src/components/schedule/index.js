@@ -23,9 +23,9 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 		e.preventDefault();
 
 		const clocks = sched.map((clock) => {
-			clock.date = formatDateTime(clock.clockedIn.toDate()).numDate;
-			clock.startTime = formatDateTime(clock.clockedIn.toDate()).time;
-			clock.endTime = formatDateTime(clock.clockedOut?.toDate()).time;
+			clock.date = formatDateTime(clock.clockedIn.toDate(), "numDate");
+			clock.startTime = formatDateTime(clock.clockedIn.toDate(), "time");
+			clock.endTime = formatDateTime(clock.clockedOut?.toDate(), "time");
 			return clock;
 		});
 
@@ -65,61 +65,72 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 				wb,
 				`${currentUser?.displayName} - Invoice #${invoiceNum
 					.toString()
-					.padStart(4, "0")} (${formatDateTime(new Date()).invoiceDate}).xlsx`
+					.padStart(4, "0")} (${formatDateTime(
+					new Date(),
+					"invoiceDate"
+				)}).xlsx`
 			);
 		}
 	};
 
-	const formatDateTime = (date) => {
-		const payPeriodDateOptions = {
-			timeZone: "Etc/UTC",
-			month: "short",
-			day: "numeric",
-			year: "numeric",
-		};
-		const textDateOptions = {
-			timeZone: "America/New_York",
-			weekday: "short",
-			month: "short",
-			day: "numeric",
-			year: "numeric",
-		};
-		const numDateOptions = {
-			timeZone: "America/New_York",
-			year: "numeric",
-			month: "2-digit",
-			day: "2-digit",
-		};
-		const timeOptions = {
-			timeZone: "America/New_York",
-			hour: "2-digit",
-			minute: "2-digit",
-			hourCycle: "h23",
-		};
-		const invoiceDateOptions = {
-			timeZone: "America/New_York",
-			month: "long",
-			day: "numeric",
-			year: "numeric",
+	const formatDateTime = (date, formatType) => {
+		const options = {
+			payPeriodDate: {
+				timeZone: "Etc/UTC",
+				month: "short",
+				day: "numeric",
+				year: "numeric",
+			},
+			textDate: {
+				timeZone: "America/New_York",
+				weekday: "short",
+				month: "short",
+				day: "numeric",
+				year: "numeric",
+			},
+			numDate: {
+				timeZone: "America/New_York",
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+			},
+			time: {
+				timeZone: "America/New_York",
+				hour: "2-digit",
+				minute: "2-digit",
+				hourCycle: "h23",
+			},
+			invoiceDate: {
+				timeZone: "America/New_York",
+				month: "long",
+				day: "numeric",
+				year: "numeric",
+			},
 		};
 
-		return {
-			payPeriodDate: new Intl.DateTimeFormat(
-				"en-CA",
-				payPeriodDateOptions
-			).format(date),
-			textDate: new Intl.DateTimeFormat("en-CA", textDateOptions)
-				.format(date)
-				.split("")
-				.filter((char) => char !== ",")
-				.join(""),
-			numDate: new Intl.DateTimeFormat("en-CA", numDateOptions).format(date),
-			time: new Intl.DateTimeFormat("en-CA", timeOptions).format(date),
-			invoiceDate: new Intl.DateTimeFormat("en-CA", invoiceDateOptions)
-				.format(date)
-				.split(",")
-				.join(""),
-		};
+		switch (formatType) {
+			case "payPeriodDate":
+				return new Intl.DateTimeFormat("en-CA", options.payPeriodDate).format(
+					date
+				);
+			case "textDate":
+				return new Intl.DateTimeFormat("en-CA", options.textDate)
+					.format(date)
+					.split("")
+					.filter((char) => char !== ",")
+					.join("");
+			case "numDate":
+				return new Intl.DateTimeFormat("en-CA", options.numDate).format(date);
+			case "time":
+				return new Intl.DateTimeFormat("en-CA", options.time).format(date);
+			case "invoiceDate":
+				return new Intl.DateTimeFormat("en-CA", options.invoiceDate)
+					.format(date)
+					.split(",")
+					.join("");
+			default:
+				return date.toISOString();
+		}
 	};
 
 	const updatePayPeriod = (docId, docData) => {
@@ -211,11 +222,16 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 							onChange={(e) => setPayPeriod(e.target.value.split(","))}
 						>
 							{payPeriods.map((period) => (
-								<option value={period} selected={period === payPeriod}>{`${
-									formatDateTime(new Date(period[0])).payPeriodDate
-								} - ${
-									formatDateTime(new Date(period[1])).payPeriodDate
-								}`}</option>
+								<option
+									value={period}
+									selected={period === payPeriod}
+								>{`${formatDateTime(
+									new Date(period[0]),
+									"payPeriodDate"
+								)} - ${formatDateTime(
+									new Date(period[1]),
+									"payPeriodDate"
+								)}`}</option>
 							))}
 						</select>
 					</div>
@@ -238,10 +254,11 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 				</div>
 				{sched.map((clock) => (
 					<div class={style.clock}>
-						<p>{formatDateTime(clock.clockedIn.toDate()).textDate}</p>
-						<p>{`${formatDateTime(clock.clockedIn.toDate()).time}-${
-							formatDateTime(clock.clockedOut?.toDate()).time
-						}`}</p>
+						<p>{formatDateTime(clock.clockedIn.toDate(), "textDate")}</p>
+						<p>{`${formatDateTime(
+							clock.clockedIn.toDate(),
+							"time"
+						)}-${formatDateTime(clock.clockedOut?.toDate(), "time")}`}</p>
 						<p>{clock.hours}</p>
 						<p>{clock.notes}</p>
 					</div>
