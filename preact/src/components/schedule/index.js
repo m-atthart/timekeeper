@@ -37,20 +37,37 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 
 		const XLSX = await import("xlsx");
 		const wb = XLSX.utils.book_new();
-		const ws = XLSX.utils.json_to_sheet(clocks, {
-			header: ["date", "startTime", "endTime", "hours", "notes"],
-		});
-		["Date", "Clocked In", "Clocked Out", "Hours", "Notes", "", ""].forEach(
-			(header, idx) => (ws[`${String.fromCharCode(65 + idx)}1`].v = header)
-		);
-		XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
+		if (exportType === "timesheet") {
+			const ws = XLSX.utils.json_to_sheet(clocks, {
+				header: ["date", "startTime", "endTime", "hours", "notes"],
+			});
 
-		XLSX.writeFile(
-			wb,
-			`${currentUser?.displayName}'s Timesheet - ${
-				payPeriod[0].split("T")[0]
-			} - ${payPeriod[1].split("T")[0]}.xlsx`
-		);
+			["Date", "Clocked In", "Clocked Out", "Hours", "Notes", "", ""].forEach(
+				(header, idx) => (ws[`${String.fromCharCode(65 + idx)}1`].v = header)
+			);
+
+			XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
+
+			XLSX.writeFile(
+				wb,
+				`${currentUser?.displayName}'s Timesheet - ${
+					payPeriod[0].split("T")[0]
+				} - ${payPeriod[1].split("T")[0]}.xlsx`
+			);
+		} else if (exportType === "invoice") {
+			const ws = {};
+
+			XLSX.utils.book_append_sheet(wb, ws, "Invoice");
+			const invoiceNum =
+				payPeriods.length -
+				payPeriods.findIndex((period) => period[0] === payPeriod[0]); //not actually invoice number, but idk
+			XLSX.writeFile(
+				wb,
+				`${currentUser?.displayName} - Invoice #${invoiceNum
+					.toString()
+					.padStart(4, "0")} (${formatDateTime(new Date()).invoiceDate}).xlsx`
+			);
+		}
 	};
 
 	const formatDateTime = (date) => {
@@ -79,6 +96,12 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 			minute: "2-digit",
 			hourCycle: "h23",
 		};
+		const invoiceDateOptions = {
+			timeZone: "America/New_York",
+			month: "long",
+			day: "numeric",
+			year: "numeric",
+		};
 
 		return {
 			payPeriodDate: new Intl.DateTimeFormat(
@@ -92,6 +115,10 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 				.join(""),
 			numDate: new Intl.DateTimeFormat("en-CA", numDateOptions).format(date),
 			time: new Intl.DateTimeFormat("en-CA", timeOptions).format(date),
+			invoiceDate: new Intl.DateTimeFormat("en-CA", invoiceDateOptions)
+				.format(date)
+				.split(",")
+				.join(""),
 		};
 	};
 
