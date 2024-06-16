@@ -193,7 +193,7 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 	useEffect(() => {
 		if (payPeriod && client)
 			updateSchedule(new Date(payPeriod[0]), new Date(payPeriod[1]));
-	}, [payPeriodIdx, client]);
+	}, [client, payPeriods, payPeriodIdx]);
 
 	return (
 		<>
