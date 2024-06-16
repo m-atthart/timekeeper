@@ -19,7 +19,7 @@ import {
 	addDoc,
 	setDoc,
 	Timestamp,
-} from "firebase/firestore/lite";
+} from "firebase/firestore";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyBspCVxKITMRu0bRtLczzLduJauUDraQkc",
