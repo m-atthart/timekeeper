@@ -14,6 +14,7 @@ import {
 
 const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 	const payPeriodLength = client?.payPeriodLength ?? "biweekly";
+	const exportType = client?.exportType ?? "timesheet";
 	const twoWksInMs = 12096e5;
 	const [payPeriodIdx, setPayPeriodIdx] = useState(0);
 	const [payPeriods, setPayPeriods] = useState([]);
