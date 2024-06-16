@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 
 const Schedule = ({ db, currentUser, client, setClient, clients }) => {
-	const payPeriodLength = client.payPeriodLength ?? "biweekly";
+	const payPeriodLength = client?.payPeriodLength ?? "biweekly";
 	const twoWksInMs = 12096e5;
 	const [payPeriodIdx, setPayPeriodIdx] = useState(0);
 	const [payPeriods, setPayPeriods] = useState([]);
@@ -136,7 +136,7 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 		return setDoc(doc(db, `clients/${client.code}/timeclock`, docId), docData);
 	};
 
-	const updateSchedule = async (client, startDate, endDate) => {
+	const updateSchedule = async (startDate, endDate) => {
 		const tzOffset = new Date().getTimezoneOffset() * 60000;
 		const UTCStartDate = new Date(startDate - -tzOffset);
 		const UTCEndDate = new Date(endDate - -(864e5 + tzOffset));
@@ -192,8 +192,8 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 	}, [client]);
 	useEffect(() => {
 		if (payPeriod && client)
-			updateSchedule(client, new Date(payPeriod[0]), new Date(payPeriod[1]));
-	}, [payPeriodIdx, client]); //make sure this uses the derived payPeriod
+			updateSchedule(new Date(payPeriod[0]), new Date(payPeriod[1]));
+	}, [payPeriodIdx, client]);
 
 	return (
 		<>
