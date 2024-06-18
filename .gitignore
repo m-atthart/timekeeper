@@ -69,3 +69,5 @@ node_modules.nosync
 # preact build
 build/
 size-plugin.json
+
+.DS_Store
