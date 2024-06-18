@@ -14,14 +14,13 @@ import {
 
 const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 	const payPeriodLength = client?.payPeriodLength ?? "biweekly";
-	const exportType = client?.exportType ?? "timesheet";
 	const twoWksInMs = 12096e5;
 	const [payPeriodIdx, setPayPeriodIdx] = useState(0);
 	const [payPeriods, setPayPeriods] = useState([]);
 	const payPeriod = payPeriods[payPeriodIdx];
 	const [sched, setSched] = useState([]);
 
-	const generateTimesheet = async (e) => {
+	const generateTimesheet = async (e, exportType) => {
 		e.preventDefault();
 
 		const clocks = sched.map((clock) => {
@@ -58,6 +57,30 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 			);
 		} else if (exportType === "invoice") {
 			const ws = {};
+
+			// row 1, columns A-E merged = "FACTURE/INVOICE"
+			// row 2 = empty
+			// column A, row 3-7 = user name, address, city province postal, number, email
+			// D3 = "Date:"
+			// E3 = date
+			// D4 = "Invoice #:"
+			// E4 = invoice number
+			// DE5 merged = "Bill to:"
+			// E, 6-8, right aligned = client name, address, city province postal
+			// A10 = "Date"
+			// B10 = "Hours worked"
+			// C10 = "Service"
+			// ABC = date, hours, service. one per row
+			// empty row
+			// D = "Total Hours:"
+			// E = total hours
+			// D = "Rate (per hour): $"
+			// E = rate
+			// D = "Balance Due: $"
+			// E = balance due
+			// empty row
+			// A-E merged = "Merci! Thank you!"
+			// all outside border
 
 			XLSX.utils.book_append_sheet(wb, ws, "Invoice");
 			const invoiceNum = payPeriods.length - payPeriodIdx; //not actually invoice number, but idk
@@ -237,8 +260,17 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 					</div>
 				</div>
 				<div>
-					<button class={style.generateBtn} onClick={generateTimesheet}>
+					<button
+						class={style.generateBtn}
+						onClick={(e) => generateTimesheet(e, "timesheet")}
+					>
 						Generate Timesheet
+					</button>
+					<button
+						class={style.generateBtn}
+						onClick={(e) => generateTimesheet(e, "invoice")}
+					>
+						Generate Invoice
 					</button>
 				</div>
 			</div>
