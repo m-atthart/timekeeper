@@ -6,15 +6,16 @@ import {
 	query,
 	where,
 	orderBy,
+	limit,
 	onSnapshot,
 	doc,
+	getDocs,
 	setDoc,
 	Timestamp,
 } from "firebase/firestore";
 
 const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 	const payPeriodLength = client?.payPeriodLength ?? "biweekly";
-	const twoWksInMs = 12096e5;
 	const [payPeriodIdx, setPayPeriodIdx] = useState(0);
 	const [payPeriods, setPayPeriods] = useState([]);
 	const payPeriod = payPeriods[payPeriodIdx];
@@ -188,31 +189,56 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 		});
 	};
 
-	const getOptions = () => {
-		const options = [];
+	const getPayPeriods = async () => {
+		const twoWksInMs = 12096e5;
+		const payPeriods = [];
 		let startPayDate = new Date(client?.startDate?.toDate());
 		while (startPayDate < new Date()) {
 			if (payPeriodLength === "biweekly") {
-				options.unshift([
-					startPayDate.toJSON(),
-					new Date(startPayDate - -(twoWksInMs - 864e5)).toJSON(),
-				]);
+				const endPayDate = new Date(startPayDate - -(twoWksInMs - 864e5));
+				payPeriods.unshift([new Date(startPayDate), new Date(endPayDate)]);
 				startPayDate = new Date(startPayDate - -twoWksInMs);
 			} else if (payPeriodLength === "monthly") {
 				startPayDate.setUTCDate(1);
 				const endPayDate = new Date(startPayDate);
 				endPayDate.setUTCMonth(endPayDate.getUTCMonth() + 1);
 				endPayDate.setUTCDate(endPayDate.getUTCDate() - 1);
-				options.unshift([startPayDate.toJSON(), endPayDate.toJSON()]);
+				payPeriods.unshift([new Date(startPayDate), new Date(endPayDate)]);
 				startPayDate.setUTCMonth(startPayDate.getUTCMonth() + 1);
 			}
 		}
-		return options;
+
+		const payPeriodsFilter = await Promise.all(
+			payPeriods.map(async (payPeriod) => {
+				const tzOffset = new Date().getTimezoneOffset() * 60000;
+				const startDate = new Date(payPeriod[0] - -tzOffset);
+				const endDate = new Date(payPeriod[1] - -(864e5 + tzOffset));
+
+				const q = query(
+					collection(db, `clients/${client.code}/timeclock`),
+					where("clockedIn", ">=", Timestamp.fromDate(startDate)),
+					where("clockedIn", "<", Timestamp.fromDate(endDate)),
+					limit(1)
+				);
+
+				const snap = await getDocs(q);
+				return snap.docs.length > 0;
+			})
+		);
+
+		const filteredPayPeriods = payPeriods
+			.filter((_, idx) => payPeriodsFilter[idx])
+			.map((payPeriod) => {
+				return [payPeriod[0].toJSON(), payPeriod[1].toJSON()];
+			});
+
+		return filteredPayPeriods;
 	};
 	useEffect(() => {
-		const options = getOptions();
-		setPayPeriods(options);
-		setPayPeriodIdx(0);
+		getPayPeriods().then((payPeriods) => {
+			setPayPeriods(payPeriods);
+			setPayPeriodIdx(0);
+		});
 	}, [client]);
 	useEffect(() => {
 		if (payPeriod && client)
