@@ -12,6 +12,7 @@ import {
 	getDocs,
 	getDoc,
 	setDoc,
+	updateDoc,
 	Timestamp,
 } from "firebase/firestore";
 
@@ -58,18 +59,28 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 				} - ${payPeriod[1].split("T")[0]}.xlsx`
 			);
 		} else if (exportType === "invoice") {
+			const currentUserData = (
+				await getDoc(doc(db, `users/${currentUser?.uid}`))
+			).data();
+
+			if (client.invoiceNums.length < payPeriods.length) {
+				currentUserData.latestInvoiceNum++;
+				client.invoiceNums.push(currentUserData.latestInvoiceNum);
+
+				await updateDoc(doc(db, `users/${currentUser?.uid}`), {
+					latestInvoiceNum: currentUserData.latestInvoiceNum,
+				});
+				await updateDoc(doc(db, `clients/${client.code}`), {
+					invoiceNums: client.invoiceNums,
+				});
+			}
 			const invoiceNum = client.invoiceNums[
 				payPeriods.length - payPeriodIdx - 1
 			]
 				.toString()
 				.padStart(4, "0");
+
 			const ws = {};
-			// ["A", "B", "C", "D", "E"].forEach((col) => {
-			// 	const numRows = 11 + sched.length + 5;
-			// 	for (let row = 1; row <= numRows; row++) {
-			// 		ws[`${col}${row}`] = {};
-			// 	}
-			// });
 			ws["!cols"] = [...Array(5)].map((_) => ({ wpx: 75 }));
 			const numRows = 11 + sched.length + 5;
 			ws["!rows"] = [...Array(numRows)].map((_) => ({}));
@@ -84,10 +95,6 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 
 			// row 2 = empty
 			// column A, row 3-7 = user name, address, city province postal, number, email
-			const currentUserData = (
-				await getDoc(doc(db, `users/${currentUser?.uid}`))
-			).data();
-
 			ws["A3"] = { v: currentUserData.displayName };
 			ws["A4"] = { v: currentUserData.addressLine1 };
 			ws["A5"] = { v: currentUserData.addressLine2 };
