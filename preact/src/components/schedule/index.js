@@ -10,6 +10,7 @@ import {
 	onSnapshot,
 	doc,
 	getDocs,
+	getDoc,
 	setDoc,
 	Timestamp,
 } from "firebase/firestore";
@@ -37,7 +38,7 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 			),
 		});
 
-		const XLSX = await import("xlsx");
+		const XLSX = await import("xlsx-js-style");
 		const wb = XLSX.utils.book_new();
 		if (exportType === "timesheet") {
 			const ws = XLSX.utils.json_to_sheet(clocks, {
@@ -57,39 +58,223 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 				} - ${payPeriod[1].split("T")[0]}.xlsx`
 			);
 		} else if (exportType === "invoice") {
+			const invoiceNum = client.invoiceNums[
+				payPeriods.length - payPeriodIdx - 1
+			]
+				.toString()
+				.padStart(4, "0");
 			const ws = {};
+			// ["A", "B", "C", "D", "E"].forEach((col) => {
+			// 	const numRows = 11 + sched.length + 5;
+			// 	for (let row = 1; row <= numRows; row++) {
+			// 		ws[`${col}${row}`] = {};
+			// 	}
+			// });
+			ws["!cols"] = [...Array(5)].map((_) => ({ wpx: 75 }));
+			const numRows = 11 + sched.length + 5;
+			ws["!rows"] = [...Array(numRows)].map((_) => ({}));
+			ws["!merges"] = [];
 
 			// row 1, columns A-E merged = "FACTURE/INVOICE"
+			ws["!merges"].push(XLSX.utils.decode_range("A1:E1"));
+			ws["A1"] = {
+				v: "FACTURE/INVOICE",
+				s: { alignment: { horizontal: "center" } },
+			};
+
 			// row 2 = empty
 			// column A, row 3-7 = user name, address, city province postal, number, email
+			const currentUserData = (
+				await getDoc(doc(db, `users/${currentUser?.uid}`))
+			).data();
+
+			ws["A3"] = { v: currentUserData.displayName };
+			ws["A4"] = { v: currentUserData.addressLine1 };
+			ws["A5"] = { v: currentUserData.addressLine2 };
+			ws["A6"] = { v: currentUserData.email };
+
 			// D3 = "Date:"
+			ws["D3"] = { v: "Date:" };
 			// E3 = date
+			ws["E3"] = {
+				v: formatDateTime(new Date(), "textDate"),
+				s: { alignment: { horizontal: "right" } },
+			};
 			// D4 = "Invoice #:"
+			ws["D4"] = { v: "Invoice #:" };
 			// E4 = invoice number
-			// DE5 merged = "Bill to:"
+			ws["E4"] = { v: invoiceNum, s: { alignment: { horizontal: "right" } } };
+			// DE5 merged, center aligned = "Bill to:"
+			ws["!merges"].push(XLSX.utils.decode_range("D5:E5"));
+			ws["D5"] = { v: "Bill to:", s: { alignment: { horizontal: "center" } } };
 			// E, 6-8, right aligned = client name, address, city province postal
+			ws["E6"] = {
+				v: client.invoiceName,
+				s: { alignment: { horizontal: "right" } },
+			};
+			ws["E7"] = {
+				v: client.addressLine1,
+				s: { alignment: { horizontal: "right" } },
+			};
+			ws["E8"] = {
+				v: client.addressLine2,
+				s: { alignment: { horizontal: "right" } },
+			};
+
 			// A10 = "Date"
-			// B10 = "Hours worked"
+			// B10 = "Hours Worked"
 			// C10 = "Service"
+			ws["A10"] = { v: "Date" };
+			ws["B10"] = { v: "Hours Worked" };
+			ws["C10"] = { v: "Service" };
 			// ABC = date, hours, service. one per row
+			let rowIdx = 11;
+			sched.forEach((clock) => {
+				ws[`A${rowIdx}`] = {
+					v: formatDateTime(clock.clockedIn.toDate(), "textDate"),
+				};
+				ws[`B${rowIdx}`] = {
+					v: clock.hours,
+					s: { alignment: { horizontal: "right" } },
+				};
+				ws["!merges"].push(XLSX.utils.decode_range(`C${rowIdx}:E${rowIdx}`));
+				ws[`C${rowIdx}`] = {
+					v: clock.notes,
+					s: { alignment: { wrapText: true } },
+				};
+
+				if (clock.notes.length > 42) {
+					ws["!rows"][rowIdx - 1].hpx = 32;
+				}
+
+				rowIdx++;
+			});
 			// empty row
+			rowIdx++;
+
 			// D = "Total Hours:"
+			ws[`D${rowIdx}`] = {
+				v: "Total Hours:",
+				s: { alignment: { horizontal: "right" } },
+			};
 			// E = total hours
+			const totalHours = sched
+				.reduce((acc, curr) => acc + curr.hours, 0)
+				.toFixed(2);
+			ws[`E${rowIdx}`] = {
+				v: totalHours,
+				s: { alignment: { horizontal: "right" } },
+			};
+			rowIdx++;
 			// D = "Rate (per hour): $"
+			ws[`D${rowIdx}`] = {
+				v: "Rate (per hour): CA$",
+				s: { alignment: { horizontal: "right" } },
+			};
 			// E = rate
+			ws[`E${rowIdx}`] = {
+				v: client.rate,
+				s: { alignment: { horizontal: "right" } },
+			};
+			rowIdx++;
 			// D = "Balance Due: $"
+			ws[`D${rowIdx}`] = {
+				v: "Balance Due: CA$",
+				s: { alignment: { horizontal: "right" } },
+			};
 			// E = balance due
+			ws[`E${rowIdx}`] = {
+				v: totalHours * client.rate,
+				s: { alignment: { horizontal: "right" } },
+			};
+			rowIdx++;
 			// empty row
+			rowIdx++;
+
 			// A-E merged = "Merci! Thank you!"
-			// all outside border
+			ws["!merges"].push(XLSX.utils.decode_range(`A${rowIdx}:E${rowIdx}`));
+			ws[`A${rowIdx}`] = {
+				v: "Merci! Thank you!",
+				s: {
+					alignment: { horizontal: "center" },
+				},
+			};
+
+			// top and bottom border
+			["A", "B", "C", "D", "E"].forEach((col) => {
+				if (!ws[`${col}1`]) {
+					ws[`${col}1`] = { v: "" };
+				}
+				if (!ws[`${col}${rowIdx}`]) {
+					ws[`${col}${rowIdx}`] = { v: "" };
+				}
+				if (!ws[`${col}1`].s) {
+					ws[`${col}1`].s = {};
+				}
+				if (!ws[`${col}${rowIdx}`].s) {
+					ws[`${col}${rowIdx}`].s = {};
+				}
+				if (!ws[`${col}1`].s.border) {
+					ws[`${col}1`].s.border = {};
+				}
+				if (!ws[`${col}${rowIdx}`].s.border) {
+					ws[`${col}${rowIdx}`].s.border = {};
+				}
+				ws[`${col}1`].s.border.top = {
+					style: "thin",
+					color: { rgb: "000000" },
+				};
+
+				ws[`${col}${rowIdx}`].s.border.bottom = {
+					style: "thin",
+					color: { rgb: "000000" },
+				};
+			});
+			// left and right border
+			for (let i = 1; i <= rowIdx; i++) {
+				if (!ws[`A${i}`]) {
+					ws[`A${i}`] = { v: "", s: { border: {} } };
+				}
+				if (!ws[`E${i}`]) {
+					ws[`E${i}`] = { v: "", s: { border: {} } };
+				}
+				if (!ws[`A${i}`].s) {
+					ws[`A${i}`].s = { border: {} };
+				}
+				if (!ws[`E${i}`].s) {
+					ws[`E${i}`].s = { border: {} };
+				}
+				if (!ws[`A${i}`].s.border) {
+					ws[`A${i}`].s.border = {};
+				}
+				if (!ws[`E${i}`].s.border) {
+					ws[`E${i}`].s.border = {};
+				}
+				ws[`E${i}`].s.border.right = {
+					style: "thin",
+					color: { rgb: "000000" },
+				};
+				ws[`A${i}`].s.border.left = { style: "thin", color: { rgb: "000000" } };
+			}
+
+			// include cells in output
+			ws["!ref"] = `A1:E${rowIdx}`;
+			console.log(ws);
+			Object.keys(ws)
+				.filter((key) => !key.startsWith("!"))
+				.forEach((key) => {
+					if (!ws[key].s) ws[key].s = {};
+					ws[key].s.font = {
+						sz: 12,
+						name: "Calibri",
+						color: { rgb: "000000" },
+					};
+				});
 
 			XLSX.utils.book_append_sheet(wb, ws, "Invoice");
-			const invoiceNum = payPeriods.length - payPeriodIdx; //not actually invoice number, but idk
 			XLSX.writeFile(
 				wb,
-				`${currentUser?.displayName} - Invoice #${invoiceNum
-					.toString()
-					.padStart(4, "0")} (${formatDateTime(
+				`${currentUser?.displayName} - Invoice #${invoiceNum} (${formatDateTime(
 					new Date(),
 					"invoiceDate"
 				)}).xlsx`
@@ -107,7 +292,6 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 			},
 			textDate: {
 				timeZone: "America/New_York",
-				weekday: "short",
 				month: "short",
 				day: "numeric",
 				year: "numeric",
