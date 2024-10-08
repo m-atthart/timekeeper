@@ -191,7 +191,7 @@ const Schedule = ({ db, currentUser, client, setClient, clients }) => {
 			};
 			// E = balance due
 			ws[`E${rowIdx}`] = {
-				v: totalHours * client.rate,
+				v: Math.round(totalHours * client.rate * 100) / 100,
 				s: { alignment: { horizontal: "right" } },
 			};
 			rowIdx++;
